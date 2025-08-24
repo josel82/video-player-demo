@@ -8,6 +8,8 @@ This project is a minimalist web application built with React that demonstrates 
 - **Video Hosting:** Amazon S3
 
 - **Content Delivery Network (CDN):** Amazon CloudFront
+
+- **ABR Streaming** HLS, DASH, CMAF
 ---
 
 ## Key Features
@@ -60,3 +62,28 @@ npm run dev
 The application will be accessible at http://localhost:5173/
 
 Note: For this application to work, you must update the video source URL in the React component to point to your specific AWS CloudFront distribution link.
+
+
+## Video delivery
+This should can be stored in an Amazon S3 bucket and accessed through CloudFront. This set up is outside of the scope of this repository.
+
+## Video Encoding
+I have used `ffmpeg` for video encoding. The following command would encode a `.mp4` video file into `CMAF` and create `.m3u8` and `.mpd` manifests 
+
+```bash
+ffmpeg -i ~/Movies/myVideo.mp4 \
+  -c:v libx264 -c:a aac \
+  -map 0:v:0 -map 0:a:0 \
+  -b:v:0 4000k -s:v:0 1920x1080 -b:a:0 500k \
+  -map 0:v:0 -map 0:a:0 \
+  -b:v:1 2000k -s:v:1 1280x720 -b:a:1 500k \
+  -var_stream_map "v:0,a:0 v:1,a:1" \
+  -seg_duration 4 \
+  -movflags frag_keyframe+empty_moov \
+  -use_template 1 \
+  -use_timeline 1 \
+  -f dash \
+  -hls_playlist 1 \
+  -hls_master_name hls_master.m3u8 \
+  manifest.mpd
+```
